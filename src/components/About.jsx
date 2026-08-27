@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+// eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
 import Reveal from "./Reveal";
 import { usePortfolioMode } from "../context/PortfolioModeContext";
@@ -6,20 +7,8 @@ import { usePortfolioMode } from "../context/PortfolioModeContext";
 export default function About() {
   const { portfolioMode } = usePortfolioMode();
 
-  if (portfolioMode === 0) {
-    return (
-      <section id="about">
-        <Reveal>
-          <div className="glass">
-            <h2>About Me</h2>
-            <p>I am a developer passionate about UI, logic and smooth user experience.</p>
-            <p>I mainly use JavaScript, Node.js, React, MongoDB and Express.</p>
-            <p>I love building clean, modern and scalable web applications.</p>
-          </div>
-        </Reveal>
-      </section>
-    );
-  }
+  const scrollRef = useRef(null);
+  const isProgrammaticScrollRef = useRef(false);
 
   const cards = [
     {
@@ -70,10 +59,10 @@ export default function About() {
   ];
 
   const loopedCards = [...cards, ...cards];
-  const scrollRef = useRef(null);
-  const isProgrammaticScrollRef = useRef(false);
 
   useEffect(() => {
+    if (portfolioMode === 0) return undefined;
+
     const scroller = scrollRef.current;
     if (!scroller) return undefined;
 
@@ -82,41 +71,118 @@ export default function About() {
       return total > 0 ? total : scroller.scrollWidth;
     };
 
-    const handleScroll = () => {
-      if (isProgrammaticScrollRef.current) return;
+    const normalizeScroll = (allowBackwardWrap = false) => {
       const singleSet = getSingleSetWidth();
-      if (singleSet <= 0) return;
+      if (singleSet <= 0) return false;
 
       if (scroller.scrollLeft >= singleSet) {
-        isProgrammaticScrollRef.current = true;
         scroller.scrollLeft -= singleSet;
-        requestAnimationFrame(() => {
-          isProgrammaticScrollRef.current = false;
-        });
-      } else if (scroller.scrollLeft <= 0 && scroller.scrollWidth > scroller.clientWidth) {
-        isProgrammaticScrollRef.current = true;
+        return true;
+      } else if (
+        allowBackwardWrap &&
+        scroller.scrollLeft <= 0 &&
+        scroller.scrollWidth > scroller.clientWidth
+      ) {
         scroller.scrollLeft += singleSet;
+        return true;
+      }
+      return false;
+    };
+
+    const handleScroll = () => {
+      if (isProgrammaticScrollRef.current) return;
+
+      const warped = normalizeScroll(true);
+      if (warped) {
+        isProgrammaticScrollRef.current = true;
         requestAnimationFrame(() => {
           isProgrammaticScrollRef.current = false;
         });
       }
     };
 
+    let autoScrollRaf = 0;
+    let paused = false;
+    const scrollSpeed = 0.75;
+
+    const tick = () => {
+      if (!paused) {
+        scroller.scrollLeft += scrollSpeed;
+        const warped = normalizeScroll(false);
+        if (warped) {
+          isProgrammaticScrollRef.current = true;
+          requestAnimationFrame(() => {
+            isProgrammaticScrollRef.current = false;
+          });
+        }
+      }
+      autoScrollRaf = requestAnimationFrame(tick);
+    };
+
+    const pause = () => {
+      paused = true;
+    };
+
+    const resume = () => {
+      paused = false;
+    };
+
     scroller.addEventListener("scroll", handleScroll, { passive: true });
-    return () => scroller.removeEventListener("scroll", handleScroll);
-  }, []);
+    scroller.addEventListener("mouseenter", pause);
+    scroller.addEventListener("mouseleave", resume);
+    scroller.addEventListener("touchstart", pause, { passive: true });
+    scroller.addEventListener("touchend", resume, { passive: true });
+    scroller.addEventListener("pointerdown", pause);
+    scroller.addEventListener("pointerup", resume);
+    scroller.addEventListener("pointercancel", resume);
+
+    autoScrollRaf = requestAnimationFrame(tick);
+
+    return () => {
+      cancelAnimationFrame(autoScrollRaf);
+      scroller.removeEventListener("scroll", handleScroll);
+      scroller.removeEventListener("mouseenter", pause);
+      scroller.removeEventListener("mouseleave", resume);
+      scroller.removeEventListener("touchstart", pause);
+      scroller.removeEventListener("touchend", resume);
+      scroller.removeEventListener("pointerdown", pause);
+      scroller.removeEventListener("pointerup", resume);
+      scroller.removeEventListener("pointercancel", resume);
+    };
+  }, [portfolioMode]);
+
+  if (portfolioMode === 0) {
+    return (
+      <section id="about">
+        <Reveal>
+          <div className="glass">
+            <h2>About Me</h2>
+            <p>I am a developer passionate about UI, logic and smooth user experience.</p>
+            <p>I mainly use JavaScript, Node.js, React, MongoDB and Express.</p>
+            <p>I love building clean, modern and scalable web applications.</p>
+          </div>
+        </Reveal>
+      </section>
+    );
+  }
 
   return (
     <section id="about" className="about-new">
+      <div className="about-new-bg-grid" aria-hidden="true" />
+      <div className="about-new-blob about-new-blob--purple" aria-hidden="true" />
+      <div className="about-new-blob about-new-blob--cyan" aria-hidden="true" />
+      <div className="about-new-blob about-new-blob--mint" aria-hidden="true" />
+
       <div className="about-new-inner">
         <motion.div
           className="about-new-head"
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
         >
           <span className="about-new-eyebrow">
+            <span className="about-new-eyebrow-dot" aria-hidden="true" />
             <code>// about</code>
           </span>
           <h2 className="about-new-title">
