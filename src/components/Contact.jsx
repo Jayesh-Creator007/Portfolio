@@ -296,7 +296,7 @@ export default function Contact() {
           </span>
 
           <h2 className="contact-window-name">Jayesh Aswani</h2>
-          <p className="contact-window-sub">Let’s build something together.</p>
+          <p className="contact-window-sub">Have an idea? Let’s build something together.</p>
 
           <div className="contact-window-grid">
             <a
